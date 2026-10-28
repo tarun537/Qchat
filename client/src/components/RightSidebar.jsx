@@ -1,51 +1,82 @@
 import React, { useContext, useEffect, useState } from 'react'
-import assets, { imagesDummyData } from '../assets/assets'
+import assets from '../assets/assets'
 import { ChatContext } from '../../context/ChatContext'
 import { AuthContext } from '../../context/AuthContext'
+import { ThemeContext } from '../../context/ThemeContext'
 
 const RightSidebar = () => {
+    const { selectedUser, messages } = useContext(ChatContext);
+    const { logout, onlineUsers } = useContext(AuthContext);
+    const { theme } = useContext(ThemeContext);
+    const [msgImages, setMsgImages] = useState([]);
 
-  const {selectedUser, messages} = useContext(ChatContext)
-  const {logout, onlineUsers} = useContext(AuthContext)
-  const [msgImages, setMsgImages] = useState([])
+    const isDark = theme === 'dark';
 
-  // Get all the images from the messages and set them to state
-  useEffect(()=>{
-    setMsgImages(
-      messages.filter(msg => msg.image).map(msg=>msg.image)
-    )
-  },[messages])
+    useEffect(() => {
+        setMsgImages(messages.filter((msg) => msg.image).map((msg) => msg.image));
+    }, [messages]);
 
-  return selectedUser && (
-    <div className={`bg-[#8185B2]/10 text-white w-full relative overflow-y-scroll ${selectedUser ? "max-md:hidden" : ""}`}>
+    if (!selectedUser) return null;
 
-      <div className='pt-16 flex flex-col items-center gap-2 text-xs font-light mx-auto'>
-        <img src={selectedUser?.profilePic || assets.avatar_icon} alt="" className='w-20 aspect-[1/1] rounded-full' />
-        <h1 className='px-10 text-xl font-medium mx-auto flex items-center gap-2'>
-            {onlineUsers.includes(selectedUser._id) && <p className='w-2 h-2 rounded-full bg-green-500'></p>}
-            {selectedUser.fullName}
-            </h1>
-            <p className='px-10 mx-auto'>{selectedUser.bio}</p>
-      </div>
-
-      <hr className='border-[#ffffff50] my-4' />
-
-      <div className='px-5 text-xs'>
-        <p>Media</p>
-        <div className='mt-2 max-h-[200px] overflow-y-scroll grid grid-cols-2 gap-4 opacity-80'>
-            {msgImages.map((url, index)=>(
-                <div key={index} onClick={()=> window.open(url)} className='cursor-pointer rounded'>
-                    <img src={url} alt="" className='h-full rounded-md' />
+    return (
+        <div className={`h-full border-l p-5 flex flex-col justify-between transition-colors duration-300 max-md:hidden ${
+            isDark
+                ? 'bg-[#151c19] border-emerald-950/60 text-gray-200'
+                : 'bg-[#fcfdfc] border-emerald-100 text-gray-800'
+        }`}>
+            <div className="flex flex-col items-center text-center">
+                <div className="relative mb-3 mt-4">
+                    <img
+                        src={selectedUser?.profilePic || assets.avatar_icon}
+                        alt=""
+                        className="w-20 h-20 rounded-full object-cover border-2 border-emerald-500/30"
+                    />
+                    {onlineUsers.includes(selectedUser._id) && (
+                        <span className="absolute bottom-1 right-1 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-white dark:border-[#151c19]"></span>
+                    )}
                 </div>
-            ))}
+
+                <h3 className="text-sm font-bold">{selectedUser.fullName}</h3>
+                <p className="text-xs text-gray-400 mt-1 max-w-[200px]">
+                    {selectedUser.bio || 'Available'}
+                </p>
+
+                <hr className={`w-full my-5 ${isDark ? 'border-emerald-950/80' : 'border-gray-100'}`} />
+
+                {/* Media Section */}
+                <div className="w-full text-left">
+                    <div className="flex justify-between items-center mb-2">
+                        <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                            Shared Media ({msgImages.length})
+                        </span>
+                    </div>
+
+                    {msgImages.length === 0 ? (
+                        <p className="text-xs text-gray-400 py-3 text-center">No media shared yet</p>
+                    ) : (
+                        <div className="grid grid-cols-3 gap-2 max-h-48 overflow-y-auto">
+                            {msgImages.map((url, idx) => (
+                                <img
+                                    key={idx}
+                                    src={url}
+                                    onClick={() => window.open(url)}
+                                    alt=""
+                                    className="w-full aspect-square rounded-xl object-cover cursor-pointer hover:opacity-80 transition-opacity"
+                                />
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            <button
+                onClick={() => logout()}
+                className="w-full py-2.5 rounded-xl border border-red-500/20 text-red-500 hover:bg-red-500/10 text-xs font-semibold transition-colors mt-4"
+            >
+                Log Out
+            </button>
         </div>
-      </div>
+    );
+};
 
-      <button onClick={()=> logout()} className='absolute bottom-5 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-purple-400 to-violet-600 text-white border-none text-sm font-light py-2 px-20 rounded-full cursor-pointer'>
-        Logout
-      </button>
-    </div>
-  )
-}
-
-export default RightSidebar
+export default RightSidebar;

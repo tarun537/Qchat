@@ -1,22 +1,34 @@
-import React, { useContext, useState } from 'react'
+import React, { useContext } from 'react'
 import Sidebar from '../components/Sidebar'
 import ChatContainer from '../components/ChatContainer'
 import RightSidebar from '../components/RightSidebar'
 import { ChatContext } from '../../context/ChatContext'
+import { ThemeContext } from '../../context/ThemeContext'
 
 const HomePage = () => {
+    const { selectedUser, selectedGroup } = useContext(ChatContext);
+    const { theme } = useContext(ThemeContext);
+    const activeChat = selectedUser || selectedGroup;
 
-    const {selectedUser} = useContext(ChatContext)
+    return (
+        <div className={`w-full h-screen sm:p-5 md:p-8 flex items-center justify-center transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0f1412]' : 'bg-[#e3e8e5]'}`}>
+            <div className={`w-full max-w-[1440px] h-full sm:h-[94vh] rounded-3xl overflow-hidden shadow-2xl border transition-colors duration-300 grid grid-cols-1 relative ${
+                theme === 'dark'
+                    ? 'bg-[#151c19] border-emerald-950/60 shadow-black/40'
+                    : 'bg-[#fcfdfc] border-emerald-100/80 shadow-emerald-950/5'
+            } ${
+                activeChat
+                    ? selectedUser
+                        ? 'md:grid-cols-[380px_1fr_320px]'
+                        : 'md:grid-cols-[380px_1fr]'
+                    : 'md:grid-cols-[380px_1fr]'
+            }`}>
+                <Sidebar />
+                <ChatContainer />
+                {selectedUser && <RightSidebar />}
+            </div>
+        </div>
+    );
+};
 
-  return (
-    <div className='border w-full h-screen sm:px-[5%] sm:py-[5%]'>
-      <div className={`backdrop-blur-xl border-2 border-gray-600 rounded-2xl overflow-hidden h-[100%] grid grid-cols-1 relative ${selectedUser ? 'md:grid-cols-[1fr_1.5fr_1fr] xl:grid-cols-[1fr_2fr_1fr]' : 'md:grid-cols-2'}`}>
-        <Sidebar />
-        <ChatContainer />
-        <RightSidebar />
-      </div>
-    </div>
-  )
-}
-
-export default HomePage
+export default HomePage;
