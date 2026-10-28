@@ -30,6 +30,7 @@ const Sidebar = () => {
     const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
     const [statusText, setStatusText] = useState('Available');
     const [isEditingStatus, setIsEditingStatus] = useState(false);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
 
     const navigate = useNavigate();
 
@@ -121,41 +122,80 @@ const Sidebar = () => {
                             )}
                         </button>
 
-                        {/* Menu Dropdown */}
-                        <div className="relative group">
-                            <button className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                                isDark ? 'hover:bg-white/10 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
-                            }`}>
+                        {/* Menu Dropdown - Clickable & Tap friendly for mobile + Desktop */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors cursor-pointer ${
+                                    isMenuOpen
+                                        ? 'bg-emerald-500/20 text-emerald-500'
+                                        : isDark ? 'hover:bg-white/10 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+                                }`}
+                                title="Menu"
+                            >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                     <circle cx="12" cy="12" r="1"/>
                                     <circle cx="12" cy="5" r="1"/>
                                     <circle cx="12" cy="19" r="1"/>
                                 </svg>
                             </button>
-                            <div className={`absolute top-full right-0 z-30 w-40 p-2 rounded-2xl border shadow-xl hidden group-hover:block ${
-                                isDark ? 'bg-[#1b2320] border-emerald-950 text-gray-200' : 'bg-white border-gray-100 text-gray-800'
-                            }`}>
-                                <p onClick={() => navigate('/profile')} className="cursor-pointer text-xs p-2 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-500 font-medium transition-colors">
-                                    Edit Profile
-                                </p>
-                                <p onClick={() => setIsGroupModalOpen(true)} className="cursor-pointer text-xs p-2 rounded-lg hover:bg-emerald-500/10 hover:text-emerald-500 font-medium transition-colors">
-                                    New Group
-                                </p>
-                                <hr className={`my-1 ${isDark ? 'border-gray-800' : 'border-gray-100'}`} />
-                                <p onClick={() => logout()} className="cursor-pointer text-xs p-2 rounded-lg text-red-500 hover:bg-red-500/10 font-medium transition-colors">
-                                    Logout
-                                </p>
-                            </div>
+
+                            {/* Backdrop overlay to close menu on tap outside */}
+                            {isMenuOpen && (
+                                <div
+                                    onClick={() => setIsMenuOpen(false)}
+                                    className="fixed inset-0 z-20 bg-transparent"
+                                />
+                            )}
+
+                            {isMenuOpen && (
+                                <div className={`absolute top-full right-0 z-30 w-44 p-2 rounded-2xl border shadow-2xl transition-all ${
+                                    isDark ? 'bg-[#1b2320] border-emerald-950 text-gray-200' : 'bg-white border-gray-100 text-gray-800'
+                                }`}>
+                                    <p
+                                        onClick={() => {
+                                            setIsMenuOpen(false);
+                                            navigate('/profile');
+                                        }}
+                                        className="cursor-pointer text-xs p-2.5 rounded-xl hover:bg-emerald-500/10 hover:text-emerald-500 font-semibold transition-colors flex items-center gap-2"
+                                    >
+                                        <span>👤</span> Edit Profile
+                                    </p>
+                                    <p
+                                        onClick={() => {
+                                            setIsMenuOpen(false);
+                                            setIsGroupModalOpen(true);
+                                        }}
+                                        className="cursor-pointer text-xs p-2.5 rounded-xl hover:bg-emerald-500/10 hover:text-emerald-500 font-semibold transition-colors flex items-center gap-2"
+                                    >
+                                        <span>👥</span> New Group
+                                    </p>
+                                    <hr className={`my-1 ${isDark ? 'border-gray-800' : 'border-gray-100'}`} />
+                                    <p
+                                        onClick={() => {
+                                            setIsMenuOpen(false);
+                                            logout();
+                                        }}
+                                        className="cursor-pointer text-xs p-2.5 rounded-xl text-red-500 hover:bg-red-500/10 font-semibold transition-colors flex items-center gap-2"
+                                    >
+                                        <span>🚪</span> Logout
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
 
-                {/* 2. User Status Card (as shown in reference image) */}
-                <div className={`mt-3 p-3 rounded-2xl border flex items-center justify-between transition-colors ${
-                    isDark
-                        ? 'bg-[#1b2420] border-emerald-900/40 text-gray-100'
-                        : 'bg-[#f4f7f5] border-emerald-50 text-gray-800'
-                }`}>
+                {/* 2. User Status Card - Tap to Edit Profile on Mobile */}
+                <div 
+                    onClick={() => navigate('/profile')}
+                    className={`mt-3 p-3 rounded-2xl border flex items-center justify-between transition-colors cursor-pointer hover:border-emerald-500/50 ${
+                        isDark
+                            ? 'bg-[#1b2420] border-emerald-900/40 text-gray-100 hover:bg-[#202b26]'
+                            : 'bg-[#f4f7f5] border-emerald-50 text-gray-800 hover:bg-[#eef3ef]'
+                    }`}
+                    title="Tap to Edit Profile"
+                >
                     <div className="flex items-center gap-3 min-w-0">
                         <div className="w-10 h-10 rounded-full bg-emerald-600/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-bold text-sm shrink-0">
                             {authUser?.fullName ? authUser.fullName.charAt(0).toUpperCase() : 'U'}
@@ -170,6 +210,7 @@ const Sidebar = () => {
                                     <input
                                         type="text"
                                         value={statusText}
+                                        onClick={(e) => e.stopPropagation()}
                                         onChange={(e) => setStatusText(e.target.value)}
                                         onBlur={() => setIsEditingStatus(false)}
                                         onKeyDown={(e) => e.key === 'Enter' && setIsEditingStatus(false)}
@@ -185,8 +226,11 @@ const Sidebar = () => {
                         </div>
                     </div>
                     <button
-                        onClick={() => setIsEditingStatus(!isEditingStatus)}
-                        className="text-gray-400 hover:text-emerald-500 p-1 rounded-lg"
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setIsEditingStatus(!isEditingStatus);
+                        }}
+                        className="text-gray-400 hover:text-emerald-500 p-1.5 rounded-lg"
                         title="Edit Status"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
