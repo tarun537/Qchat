@@ -17,11 +17,15 @@ export const CallProvider = ({ children }) => {
     const [screenBlurred, setScreenBlurred] = useState(false);
     const [callDuration, setCallDuration] = useState(0);
 
+    const [localStream, setLocalStream] = useState(null);
+    const [remoteStream, setRemoteStream] = useState(null);
+
     const localStreamRef = useRef(null);
     const remoteStreamRef = useRef(null);
     const peerConnectionRef = useRef(null);
     const timerRef = useRef(null);
     const incomingCallDataRef = useRef(null);
+    const pendingCandidatesRef = useRef([]);
 
     // Track state in refs for socket events
     const callStatusRef = useRef(callStatus);
@@ -46,13 +50,18 @@ export const CallProvider = ({ children }) => {
         }
 
         if (peerConnectionRef.current) {
+            peerConnectionRef.current.onicecandidate = null;
+            peerConnectionRef.current.ontrack = null;
             peerConnectionRef.current.close();
             peerConnectionRef.current = null;
         }
 
         remoteStreamRef.current = null;
         incomingCallDataRef.current = null;
+        pendingCandidatesRef.current = [];
 
+        setLocalStream(null);
+        setRemoteStream(null);
         setCallStatus("idle");
         setRemoteUser(null);
         setIsMuted(false);
@@ -93,6 +102,7 @@ export const CallProvider = ({ children }) => {
         pc.ontrack = (event) => {
             if (event.streams && event.streams[0]) {
                 remoteStreamRef.current = event.streams[0];
+                setRemoteStream(event.streams[0]);
             }
         };
 
@@ -104,6 +114,20 @@ export const CallProvider = ({ children }) => {
 
         peerConnectionRef.current = pc;
         return pc;
+    };
+
+    // Process queued ICE candidates once remoteDescription is set
+    const processQueuedCandidates = async (pc) => {
+        if (pendingCandidatesRef.current.length > 0) {
+            for (const candidate of pendingCandidatesRef.current) {
+                try {
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
+                } catch (err) {
+                    console.error("Error adding queued ice candidate:", err);
+                }
+            }
+            pendingCandidatesRef.current = [];
+        }
     };
 
     // Initiate Call (Caller side)
@@ -124,6 +148,7 @@ export const CallProvider = ({ children }) => {
                 video: type === "video",
             });
             localStreamRef.current = stream;
+            setLocalStream(stream);
 
             const pc = createPeerConnection(user._id);
             stream.getTracks().forEach((track) => pc.addTrack(track, stream));
@@ -165,11 +190,14 @@ export const CallProvider = ({ children }) => {
                 video: callData.type === "video",
             });
             localStreamRef.current = stream;
+            setLocalStream(stream);
 
             const pc = createPeerConnection(callData.from);
             stream.getTracks().forEach((track) => pc.addTrack(track, stream));
 
             await pc.setRemoteDescription(new RTCSessionDescription(callData.offer));
+            await processQueuedCandidates(pc);
+
             const answer = await pc.createAnswer();
             await pc.setLocalDescription(answer);
 
@@ -219,7 +247,6 @@ export const CallProvider = ({ children }) => {
             return;
         }
 
-        // 1. Detect tab visibility / window focus changes
         const handleVisibilityChange = () => {
             if (document.hidden) {
                 setScreenBlurred(true);
@@ -236,7 +263,6 @@ export const CallProvider = ({ children }) => {
             setScreenBlurred(false);
         };
 
-        // 2. Block keyboard shortcuts for screenshots and recordings (PrintScreen, Windows+Shift+S, Meta+Shift+3/4, etc.)
         const handleKeyDown = (e) => {
             if (e.key === "PrintScreen") {
                 e.preventDefault();
@@ -245,7 +271,6 @@ export const CallProvider = ({ children }) => {
                 setTimeout(() => setScreenBlurred(false), 2000);
             }
 
-            // Detect Alt+PrintScreen or Windows screen snippet
             if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S" || e.key === "p" || e.key === "P")) {
                 if (e.shiftKey) {
                     setScreenBlurred(true);
@@ -253,16 +278,6 @@ export const CallProvider = ({ children }) => {
                 }
             }
         };
-
-        // 3. Monitor getDisplayMedia calls to prevent active in-browser screen sharing of the call
-        let originalGetDisplayMedia = null;
-        if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-            originalGetDisplayMedia = navigator.mediaDevices.getDisplayMedia;
-            navigator.mediaDevices.getDisplayMedia = async () => {
-                toast.error("Screen recording is blocked during active calls for privacy.");
-                throw new DOMException("Screen capture is disabled during calls", "NotAllowedError");
-            };
-        }
 
         window.addEventListener("visibilitychange", handleVisibilityChange);
         window.addEventListener("blur", handleBlur);
@@ -274,9 +289,6 @@ export const CallProvider = ({ children }) => {
             window.removeEventListener("blur", handleBlur);
             window.removeEventListener("focus", handleFocus);
             window.removeEventListener("keydown", handleKeyDown);
-            if (originalGetDisplayMedia && navigator.mediaDevices) {
-                navigator.mediaDevices.getDisplayMedia = originalGetDisplayMedia;
-            }
         };
     }, [callStatus]);
 
@@ -287,7 +299,6 @@ export const CallProvider = ({ children }) => {
         // Incoming call
         const handleIncomingCall = ({ from, fromUser, type, offer }) => {
             if (callStatusRef.current !== "idle") {
-                // Already busy
                 socket.emit("call:reject", { to: from });
                 return;
             }
@@ -303,6 +314,7 @@ export const CallProvider = ({ children }) => {
             if (peerConnectionRef.current) {
                 try {
                     await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
+                    await processQueuedCandidates(peerConnectionRef.current);
                     setCallStatus("connected");
 
                     // Start call duration timer
@@ -338,12 +350,17 @@ export const CallProvider = ({ children }) => {
 
         // ICE candidate received
         const handleIceCandidate = async ({ candidate }) => {
-            if (peerConnectionRef.current && candidate) {
+            if (!candidate) return;
+            const pc = peerConnectionRef.current;
+            if (pc && pc.remoteDescription && pc.remoteDescription.type) {
                 try {
-                    await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+                    await pc.addIceCandidate(new RTCIceCandidate(candidate));
                 } catch (err) {
                     console.error("Error adding ice candidate:", err);
                 }
+            } else {
+                // Queue candidate until remote description is set
+                pendingCandidatesRef.current.push(candidate);
             }
         };
 
@@ -382,8 +399,8 @@ export const CallProvider = ({ children }) => {
         isVideoOff,
         screenBlurred,
         callDuration,
-        localStreamRef,
-        remoteStreamRef,
+        localStream,
+        remoteStream,
         startCall,
         acceptCall,
         rejectCall,
@@ -394,4 +411,3 @@ export const CallProvider = ({ children }) => {
 
     return <CallContext.Provider value={value}>{children}</CallContext.Provider>;
 };
-

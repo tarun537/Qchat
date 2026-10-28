@@ -205,7 +205,7 @@ const ChatContainer = () => {
     // When no chat is selected: Empty State like the reference image
     if (!activeChat) {
         return (
-            <div className={`h-full flex flex-col items-center justify-center p-6 text-center transition-colors duration-300 ${
+            <div className={`h-full max-md:hidden flex flex-col items-center justify-center p-6 text-center transition-colors duration-300 ${
                 isDark ? 'bg-[#151c19] text-gray-200' : 'bg-[#fcfdfc] text-gray-800'
             }`}>
                 {/* Bubble Icon with soft background glow */}
@@ -238,11 +238,13 @@ const ChatContainer = () => {
     }
 
     return (
-        <div className={`h-full flex flex-col relative transition-colors duration-300 ${
+        <div className={`h-full flex flex-col relative overflow-hidden transition-colors duration-300 ${
+            !activeChat ? 'max-md:hidden' : 'w-full'
+        } ${
             isDark ? 'bg-[#151c19] text-gray-200' : 'bg-[#fcfdfc] text-gray-800'
         }`}>
             {/* Header */}
-            <div className={`flex items-center gap-3 p-3.5 px-5 border-b transition-colors ${
+            <div className={`flex items-center gap-3 p-3 px-4 border-b shrink-0 transition-colors ${
                 isDark ? 'border-emerald-950/60 bg-[#151c19]' : 'border-emerald-100 bg-[#fcfdfc]'
             }`}>
                 <img
@@ -364,7 +366,7 @@ const ChatContainer = () => {
             </div>
 
             {/* Input Bar */}
-            <div className={`p-3 px-4 border-t transition-colors ${
+            <div className={`p-2.5 sm:p-3 px-3 sm:px-4 border-t shrink-0 transition-colors ${
                 isDark ? 'border-emerald-950/60 bg-[#151c19]' : 'border-emerald-100 bg-[#fcfdfc]'
             }`}>
                 {isRecording ? (

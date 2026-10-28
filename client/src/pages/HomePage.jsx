@@ -11,8 +11,8 @@ const HomePage = () => {
     const activeChat = selectedUser || selectedGroup;
 
     return (
-        <div className={`w-full h-screen sm:p-5 md:p-8 flex items-center justify-center transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0f1412]' : 'bg-[#e3e8e5]'}`}>
-            <div className={`w-full max-w-[1440px] h-full sm:h-[94vh] rounded-3xl overflow-hidden shadow-2xl border transition-colors duration-300 grid grid-cols-1 relative ${
+        <div className={`w-full h-[100dvh] sm:h-screen sm:p-5 md:p-8 flex items-center justify-center overflow-hidden transition-colors duration-300 ${theme === 'dark' ? 'bg-[#0f1412]' : 'bg-[#e3e8e5]'}`}>
+            <div className={`w-full max-w-[1440px] h-full sm:h-[94vh] rounded-none sm:rounded-3xl overflow-hidden shadow-2xl border-0 sm:border transition-colors duration-300 grid grid-cols-1 relative ${
                 theme === 'dark'
                     ? 'bg-[#151c19] border-emerald-950/60 shadow-black/40'
                     : 'bg-[#fcfdfc] border-emerald-100/80 shadow-emerald-950/5'
